@@ -45,7 +45,7 @@
 
 #define W_CLK             8               // Pin  8 - connect to AD9850 module word load clock pin (CLK)
 #define FQ_UD             9               // Pin  9 - connect to freq update pin (FQ)
-#define DATA             10               // Pin 10 - connect to serial data load pin (DATA)
+#define DAT             10               // Pin 10 - connect to serial data load pin (DAT)
 #define RESET            11               // Pin 11 - connect to reset pin (RST) 
 
 #define LCDCOLS          16               // LCD stuff
@@ -79,9 +79,9 @@ char temp[17];
 int incrementIndex = 0;           // variable to index into increment arrays (see below)
 int_fast32_t oldFrequency = 1;    // variable to hold the updated frequency
 
-static char *bandWarnings[]     = {"Extra  ", "Tech   ", "General"};
+static char const *bandWarnings[]     = {"Extra  ", "Tech   ", "General"};
 static int whichLicense;
-static char *incrementStrings[] = {"1", "10", "20", "100", "1", "5", "10", "100"};     // These two allign
+static char const *incrementStrings[] = {"1", "10", "20", "100", "1", "5", "10", "100"};     // These two allign
 static  long incrementTable[]   = { 1, 10,   20,   100, 1000, 5000, 10000, 100000};
 static  long memory[]           = {VFOLOWERFREQUENCYLIMIT, VFOUPPERFREQUENCYLIMIT};
 
@@ -116,7 +116,7 @@ void setup() {
   sei();
   pinMode(FQ_UD, OUTPUT);             // Tied to AD9850 board
   pinMode(W_CLK, OUTPUT);
-  pinMode(DATA, OUTPUT);
+  pinMode(DAT, OUTPUT);
   pinMode(RESET, OUTPUT);
 
   pulseHigh(RESET);

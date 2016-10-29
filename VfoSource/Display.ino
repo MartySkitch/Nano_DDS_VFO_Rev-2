@@ -9,7 +9,7 @@
   Return value:
     void
 *****/
-void DisplayLCDLine(char *message, int row, int col)
+void DisplayLCDLine(const char *message, int row, int col)
 {
   lcd.setCursor(col, row);
   lcd.print(message);
@@ -52,7 +52,7 @@ void NewShowFreq(int row, int col) {
   Return value:
     void
 *****/
-void ShowMarker(char *c)
+void ShowMarker(char const *c)
 {
   lcd.setCursor(9, 1);
   lcd.print(c);

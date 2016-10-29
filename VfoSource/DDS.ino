@@ -21,7 +21,7 @@ void sendFrequency(int32_t frequency) {
 void tfr_byte(byte data)
 {
   for (int i = 0; i < 8; i++, data >>= 1) {
-    digitalWrite(DATA, data & 0x01);
+    digitalWrite(DAT, data & 0x01);
     pulseHigh(W_CLK);   //after each bit sent, CLK is pulsed high
   }
 }
