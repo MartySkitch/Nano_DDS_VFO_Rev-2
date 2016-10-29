@@ -24,7 +24,7 @@
 #define SPACES      "                "
 #define HERTZ       "Hz"
 #define KILOHERTZ   "kHz"
-#define MEGAHERTZ   "mHz"
+#define MEGAHERTZ   "MHz"
 
 #define GENERAL     2
 #define TECH        1
@@ -75,15 +75,8 @@ volatile long currentFrequencyIncrement;
 volatile long ritOffset;
 
 // ============================ General Global Variables ============================
-//bool ritState;                    // Receiver incremental tuning state HIGH, LOW
-//bool oldRitState;
-
-char temp[17];
-
-//int ritDisplaySwitch;             
+char temp[17];         
 int incrementIndex = 0;           // variable to index into increment arrays (see below)
-
-//long oldRitOffset;
 int_fast32_t oldFrequency = 1;    // variable to hold the updated frequency
 
 static char *bandWarnings[]     = {"Extra  ", "Tech   ", "General"};
@@ -97,7 +90,6 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Create LCD ob
 
 
 void setup() {
-  Serial.begin(115200);
   // ===================== Set up from EEPROM memory ======================================
 
   currentFrequency = readEEPROMRecord(READEEPROMFREQ);            // Last frequency read while tuning
@@ -144,9 +136,7 @@ void loop() {
   int flag;
 
   state = digitalRead(ROTARYSWITCHPIN);    // See if they pressed encoder switch
-  //ritState = digitalRead(RITPIN);          // Also check RIT button
-
-
+  
   if (state != oldState) {                 // Only if it's been changed...
     if (state == 1) {                      // Only adjust increment when HIGH
       if (incrementIndex < ELEMENTCOUNT(incrementTable) - 1) {    // Adjust the increment size
@@ -184,262 +174,7 @@ void loop() {
 }
 
 
-                        // Original interrupt service routine, as modified by Jack
-ISR(PCINT2_vect) {
-  unsigned char result = r.process();
-
-  switch (result) {
-    case 0:                                          // Nothing done...
-      return;
-
-    case DIR_CW:                                     // Turning Clockwise, going to higher frequencies
-        currentFrequency += currentFrequencyIncrement;
-      break;
-
-    case DIR_CCW:                                    // Turning Counter-Clockwise, going to lower frequencies
-        currentFrequency -= currentFrequencyIncrement;
-      break;
-
-    default:                                          // Should never be here
-      break;
-  }
-  if (currentFrequency >= VFOUPPERFREQUENCYLIMIT) {   // Upper band edge?
-    currentFrequency = oldFrequency;
-  }
-  if (currentFrequency <= VFOLOWERFREQUENCYLIMIT) {   // Lower band edge?
-    currentFrequency = oldFrequency;
-  }
-}
 
 
-void sendFrequency(int32_t frequency) {
-  /*
-  Formula: int32_t adjustedFreq = frequency * 4294967295/125000000;
 
-  Note the 125 MHz clock on 9850.  You can make 'slight' tuning
-  variations here by adjusting the clock frequency. The constants
-  factor to 34.359
-  */
-  int32_t freq = (int32_t) (((float) frequency * MYTUNINGCONSTANT));  // Redefine your constant if needed
-
-  for (int b = 0; b < 4; b++, freq >>= 8) {
-    tfr_byte(freq & 0xFF);
-  }
-  tfr_byte(0x000);   // Final control byte, all 0 for 9850 chip
-  pulseHigh(FQ_UD);  // Done!  Should see output
-}
-
-// transfers a byte, a bit at a time, LSB first to the 9850 via serial DATA line
-void tfr_byte(byte data)
-{
-  for (int i = 0; i < 8; i++, data >>= 1) {
-    digitalWrite(DATA, data & 0x01);
-    pulseHigh(W_CLK);   //after each bit sent, CLK is pulsed high
-  }
-}
-
-/*****
-  This method is used to format a frequency on the lcd display. The currentFrequqncy variable holds the display
-  frequency.
-
-  Argument list:
-    void
-
-  Return value:
-    void
-*****/
-void DisplayLCDLine(char *message, int row, int col)
-{
-  lcd.setCursor(col, row);
-  lcd.print(message);
-}
-
-/*****
-  This method is used to read a record from EEPROM. Each record is 4 bytes (sizeof(unsigned long)) and
-  is used to calculate where to read from EEPROM.
-
-  Argument list:
-    int record                the record to be read. While tuning, it is record 0
-
-  Return value:
-    unsigned long            the value of the record,
-
-  CAUTION:  Record 0 is the current frequency while tuning, etc. Record 1 is the number of stored
-            frequencies the user has set. Therefore, the stored frequencies list starts with record 23.
-*****/
-unsigned long readEEPROMRecord(int record)
-{
-  int offset;
-  union {
-    byte array[4];
-    unsigned long val;
-  } myUnion;
-
-  offset = record * sizeof(unsigned long);
-
-  myUnion.array[0] = EEPROM.read(offset);
-  myUnion.array[1] = EEPROM.read(offset + 1);
-  myUnion.array[2] = EEPROM.read(offset + 2);
-  myUnion.array[3] = EEPROM.read(offset + 3);
-
-  return myUnion.val;
-}
-
-/*****
-  This method is used to test and perhaps write the latest frequency to EEPROM. This routine is called
-  every DELTATIMEOFFSET (default = 10 seconds). The method tests to see if the current frequency is the
-  same as the last frequency (markFrequency). If they are the same, +/- DELTAFREQOFFSET (drift?), no
-  write to EEPROM takes place. If the change was larger than DELTAFREQOFFSET, the new frequency is
-  written to EEPROM. This is done because EEPROM can only be written/erased 100K times before it gets
-  flaky.
-
-  Argument list:
-    unsigned long freq        the current frequency of VFO
-    int record                the record to be written. While tuning, it is record 0
-
-  Return value:
-    void
-*****/
-void writeEEPROMRecord(unsigned long freq, int record)
-{
-  int offset;
-  union {
-    byte array[4];
-    unsigned long val;
-  } myUnion;
-
-  if (abs(markFrequency - freq) < DELTAFREQOFFSET) {  // Is the new frequency more or less the same as the one last written?
-    return;                                           // the same as the one last written? If so, go home.
-  }
-  myUnion.val = freq;
-  offset = record * sizeof(unsigned long);
-
-  EEPROM.write(offset, myUnion.array[0]);
-  EEPROM.write(offset + 1, myUnion.array[1]);
-  EEPROM.write(offset + 2, myUnion.array[2]);
-  EEPROM.write(offset + 3, myUnion.array[3]);
-  markFrequency = freq;                               // Save the value just written
-}
-
-/*****
-  This method is used to format a frrequency on the lcd display. The currentFrequqncy variable holds the display
-  frequency. This is kinda clunky...
-
-  Argument list:
-    void
-
-  Return value:
-    void
-*****/
-void NewShowFreq(int row, int col) {
-  char part[10];
-  dtostrf( (float) currentFrequency, 7,0, temp);
-  
-  strcpy(part, &temp[1]);
-  strcpy(temp, "7.");
-  strcat(temp, part);
-  strcpy(part, &temp[5]);
-  temp[5] = '.';
-  strcpy(&temp[6], part);
-  strcat(temp, " "); 
-  strcat(temp, MEGAHERTZ);
-  lcd.setCursor(col, row);
-  lcd.print(SPACES);
-  lcd.setCursor(col + 2, row);
-  lcd.print(temp);
-}
-
-/*****
-  This method is used to see if the current frequency displayed on line 1 is within a ham band.
-  The code does not allow you to use the band edge.
-
-  Argument list:
-    void
-
-  Return value:
-    int            0 (FREQINBAND) if within a ham band, 1 (FREQOUTOFBAND) if not
-*****/
-int DoRangeCheck()
-{
-
-  if (currentFrequency <= VFOLOWERFREQUENCYLIMIT || currentFrequency >= VFOUPPERFREQUENCYLIMIT) {
-    return FREQOUTOFBAND;
-  }
-  //Setup some VFO band edges
-  if (currentFrequency <= VFOLOWALLBUTEXTRA) {
-    whichLicense = EXTRA;
-  }
-  if (currentFrequency > VFOLOWTECH && currentFrequency < VFOHIGHTECH) {
-    whichLicense = TECH;
-  }
-
-  if ((currentFrequency >= VFOLOWALLBUTEXTRA && currentFrequency < VFOHIGHTECH) ||
-      (currentFrequency > VFOGENERALLOWGAP && currentFrequency < VFOUPPERFREQUENCYLIMIT) ) {
-    whichLicense = GENERAL;
-  }
-  ShowMarker(bandWarnings[whichLicense]);
-
-  return FREQINBAND;
-}
-
-/*****
-  This method is used to display the current license type
-
-  Argument list:
-    char *c       // pointer to the type of license as held in bandWarnings[]
-
-  Return value:
-    void
-*****/
-void ShowMarker(char *c)
-{
-  lcd.setCursor(9, 1);
-  lcd.print(c);
-}
-
-/*****
-  This method is used to change the number of hertz associated with one click of the rotary encoder. Ten step
-  levels are provided and increasing or decreasing beyonds the array limits rolls around to the start/end
-  of the array.
-
-  Argument list:
-    void
-
-  Return value:
-    void
-*****/
-void ProcessSteps()
-{
-  DisplayLCDLine(SPACES, 1, 0);                    // This clears the line
-
-  strcpy(temp, incrementStrings[incrementIndex]);
-
-  if (incrementIndex < 4) {
-    strcat(temp, HERTZ);
-  } else {
-    strcat(temp, KILOHERTZ);
-  }
-
-  DisplayLCDLine(temp, 1, 0);
-  ShowMarker(bandWarnings[whichLicense]);
-}
-
-/*****
-  This method simply displays a sign-on message
-
-  Argument list:
-    void
-
-  Return value:
-    void
-*****/
-void Splash()
-{
-
-  lcd.setCursor(0, 0);
-  lcd.print("Forty-9er DDS ");
-  lcd.setCursor(3, 1);
-  lcd.print("NR3Z");
-  delay(SPLASHDELAY);
-}
 
