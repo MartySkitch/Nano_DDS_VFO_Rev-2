@@ -1,4 +1,3 @@
-
 /*****
   This method is used to format a frequency on the lcd display. The currentFrequqncy variable holds the display
   frequency.
@@ -9,8 +8,12 @@
   Return value:
     void
 *****/
-void DisplayLCDLine(const char *message, int row, int col)
+void DisplayLCDLine(const char *message, int row, int col, int clearLine)
 {
+  if(clearLine) {
+    lcd.setCursor(0, row);
+    lcd.print(SPACES);
+  }
   lcd.setCursor(col, row);
   lcd.print(message);
 }
@@ -25,7 +28,7 @@ void DisplayLCDLine(const char *message, int row, int col)
   Return value:
     void
 *****/
-void NewShowFreq(int row, int col) {
+const char * ShowFrequency() {
   char part[10];
   dtostrf( (float) currentFrequency, 7,0, temp);
   
@@ -37,10 +40,7 @@ void NewShowFreq(int row, int col) {
   strcpy(&temp[6], part);
   strcat(temp, " "); 
   strcat(temp, MEGAHERTZ);
-  lcd.setCursor(col, row);
-  lcd.print(SPACES);
-  lcd.setCursor(col + 2, row);
-  lcd.print(temp);
+  return temp;
 }
 
 /*****
@@ -52,10 +52,10 @@ void NewShowFreq(int row, int col) {
   Return value:
     void
 *****/
-void ShowMarker(char const *c)
+char const * ShowLicenseType()
 {
-  lcd.setCursor(9, 1);
-  lcd.print(c);
+  
+  return bandWarnings[whichLicense];
 }
 
 /*****
@@ -69,10 +69,8 @@ void ShowMarker(char const *c)
   Return value:
     void
 *****/
-void ProcessSteps()
+const char * ShowFreqStep()
 {
-  DisplayLCDLine(SPACES, 1, 0);                    // This clears the line
-
   strcpy(temp, incrementStrings[incrementIndex]);
 
   if (incrementIndex < 4) {
@@ -80,10 +78,33 @@ void ProcessSteps()
   } else {
     strcat(temp, KILOHERTZ);
   }
-
-  DisplayLCDLine(temp, 1, 0);
-  ShowMarker(bandWarnings[whichLicense]);
+  return temp;
 }
+
+const char * ShowFreqStepAndLicence()
+{
+  strcpy(temp, ShowFreqStep());
+  for(int indx = strlen(temp); indx < 9; indx++) {
+      strcat(temp, " ");
+  }
+  strcat(temp, ShowLicenseType());
+  return temp;
+}
+
+
+const char * ShowClockDisplay(){
+  strcpy(temp, "This is the time");
+  return temp;
+}
+
+void printDigits(int digits){
+  // utility function for digital clock display: prints preceding colon and leading 0
+  Serial.print(":");
+  if(digits < 10)
+    Serial.print('0');
+  Serial.print(digits);
+}
+
 
 /*****
   This method simply displays a sign-on message
@@ -96,7 +117,6 @@ void ProcessSteps()
 *****/
 void Splash()
 {
-
   lcd.setCursor(0, 0);
   lcd.print("Forty-9er DDS ");
   lcd.setCursor(3, 1);

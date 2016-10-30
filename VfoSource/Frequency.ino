@@ -54,7 +54,5 @@ int DoRangeCheck()
       (currentFrequency > VFOGENERALLOWGAP && currentFrequency < VFOUPPERFREQUENCYLIMIT) ) {
     whichLicense = GENERAL;
   }
-  ShowMarker(bandWarnings[whichLicense]);
-
   return FREQINBAND;
 }

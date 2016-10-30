@@ -7,11 +7,14 @@
    Rev 5.00:  July  8, 2015, Jack Purdum
    Rev.6.00:  Aug.  1, 2015, Jack Purdum
 	 Rev.6.10:  Feb. 27, 2016, Jack Purdum, decreased the number of elements in the increment array
+   Rev.7.00:  Oct. 30, 2016, Marty Squicciarini modified code to allow second line to be changed on the fly
 */
 
 #include <Rotary.h>   // From Brian Low: https://github.com/brianlow/Rotary
 #include <EEPROM.h>   // Shipped with IDE
 #include <Wire.h>     //         "
+
+
 
 // Get the LCD I2C Library here:
 // https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads
@@ -45,7 +48,7 @@
 
 #define W_CLK             8               // Pin  8 - connect to AD9850 module word load clock pin (CLK)
 #define FQ_UD             9               // Pin  9 - connect to freq update pin (FQ)
-#define DAT             10               // Pin 10 - connect to serial data load pin (DAT)
+#define DAT              10               // Pin 10 - connect to serial data load pin (DAT)
 #define RESET            11               // Pin 11 - connect to reset pin (RST) 
 
 #define LCDCOLS          16               // LCD stuff
@@ -79,19 +82,36 @@ char temp[17];
 int incrementIndex = 0;           // variable to index into increment arrays (see below)
 int_fast32_t oldFrequency = 1;    // variable to hold the updated frequency
 
-static char const *bandWarnings[]     = {"Extra  ", "Tech   ", "General"};
+static char const *bandWarnings[]     = {"  Extra", "   Tech", "General"};
 static int whichLicense;
-static char const *incrementStrings[] = {"1", "10", "20", "100", "1", "5", "10", "100"};     // These two allign
-static  long incrementTable[]   = { 1, 10,   20,   100, 1000, 5000, 10000, 100000};
+static char const *incrementStrings[] = {"1", "10", "20", "100", "1", "5", "10",   "100"};     // These two allign
+static  long incrementTable[]   =       { 1,   10,   20,   100, 1000, 5000, 10000, 100000};
 static  long memory[]           = {VFOLOWERFREQUENCYLIMIT, VFOUPPERFREQUENCYLIMIT};
+
+// ----- Second Line Display  -----
+int displayMode = 0;
+
+// -- FUNCTION PROTOTYPES for second line of display--
+const char * ShowFreqStepAndLicence();
+const char * ShowClockDisplay();
+const char * func3();
+const char * func4();
+const char * func5();
+// -- ENDS --
+// notice the prototype
+const char * (*ptr[5])();   
 
 Rotary r = Rotary(2, 3);       // Create encoder object and set the pins the rotary encoder uses.  Must be interrupt pins.
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Create LCD object and set the LCD I2C address
 
 
 void setup() {
+   // ===================== arrays are made to point ======================================
+   // at the respective functions
+   ptr[0]=ShowFreqStepAndLicence;
+   ptr[1]=ShowClockDisplay;
+  
   // ===================== Set up from EEPROM memory ======================================
-
   currentFrequency = readEEPROMRecord(READEEPROMFREQ);            // Last frequency read while tuning
   if (currentFrequency < 7000000L || currentFrequency > 7300000L) // New EEPROM usually initialized with 0xFF
     currentFrequency = 7030000L;                                  // Default QRP freq if no EEPROM recorded yet
@@ -123,9 +143,8 @@ void setup() {
   pulseHigh(W_CLK);
   pulseHigh(FQ_UD);  // this pulse enables serial mode on the AD9850 - Datasheet page 12.`
 
-  ProcessSteps();
+  DisplayLCDLine(ShowFreqStepAndLicence(), 1, 0, 1);  
   DoRangeCheck();
-  ShowMarker(bandWarnings[whichLicense]);
   sendFrequency(currentFrequency);
 }
 
@@ -145,15 +164,13 @@ void loop() {
         incrementIndex = 0;                // Wrap around to zero
       }
       currentFrequencyIncrement = incrementTable[incrementIndex];
-
-      ProcessSteps();
+        
+      DisplayLCDLine( (*ptr[displayMode])(), 1, 0, 1);  // This is for the second line
     }
     oldState = state;
   }
 
   if (currentFrequency != oldFrequency) { // Are we still looking at the same frequency?
-    NewShowFreq(0, 0);                    // Nope, so update display.
-
     flag = DoRangeCheck();
     if (flag == FREQOUTOFBAND) {          // Tell user if out of band; should not happen
       lcd.setCursor(0, 0);
@@ -161,8 +178,11 @@ void loop() {
     }
     sendFrequency(currentFrequency);      // Send frequency to chip
     oldFrequency = currentFrequency;
+    
+    DisplayLCDLine(ShowFrequency(), 0, 2, 1);                    // Nope, so update display.
+    DisplayLCDLine( (*ptr[displayMode])(), 1, 0, 1);  // This is for the second line
   }
-
+    
   eepromCurrentTime = millis();
   // Only update EEPROM if necessary...both time and currently stored freq.
   if (eepromCurrentTime - eepromStartTime > DELTATIMEOFFSET && markFrequency != currentFrequency) {
@@ -171,6 +191,11 @@ void loop() {
     eepromStartTime = millis();
     markFrequency = currentFrequency;                                     // Update EEPROM freq.
   }
+
+  if (eepromCurrentTime - eepromStartTime > 10000)
+    displayMode = 1;
+   else
+    displayMode =0;  
 }
 
 
