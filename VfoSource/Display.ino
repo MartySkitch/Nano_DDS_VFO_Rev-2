@@ -8,7 +8,7 @@
   Return value:
     void
 *****/
-void DisplayLCDLine(const char *message, int row, int col, int clearLine)
+void DisplayLCDLine(String message, int row, int col, int clearLine)
 {
   if(clearLine) {
     lcd.setCursor(0, row);
@@ -28,31 +28,26 @@ void DisplayLCDLine(const char *message, int row, int col, int clearLine)
   Return value:
     void
 *****/
-const char * ShowFrequency() {
-  char part[10];
-  dtostrf( (float) currentFrequency, 7,0, temp);
-  
-  strcpy(part, &temp[1]);
-  strcpy(temp, "7.");
-  strcat(temp, part);
-  strcpy(part, &temp[5]);
-  temp[5] = '.';
-  strcpy(&temp[6], part);
-  strcat(temp, " "); 
-  strcat(temp, MEGAHERTZ);
-  return temp;
+String ShowFrequency() {
+  String part;
+  String tmp; 
+  part = currentFrequency;
+  tmp = "7." + part.substring(1,4) 
+        + "." + part.substring(4)
+        + " "  MEGAHERTZ;
+  return tmp;
 }
 
 /*****
   This method is used to display the current license type
 
   Argument list:
-    char *c       // pointer to the type of license as held in bandWarnings[]
+    String       // String the type of license as held in bandWarnings[]
 
   Return value:
     void
 *****/
-char const * ShowLicenseType()
+String ShowLicenseType()
 {
   
   return bandWarnings[whichLicense];
@@ -69,40 +64,54 @@ char const * ShowLicenseType()
   Return value:
     void
 *****/
-const char * ShowFreqStep()
+String ShowFreqStep()
 {
-  strcpy(temp, incrementStrings[incrementIndex]);
+  String tmp; 
+  tmp +=  incrementStrings[incrementIndex];
 
   if (incrementIndex < 4) {
-    strcat(temp, HERTZ);
+    tmp += HERTZ;
   } else {
-    strcat(temp, KILOHERTZ);
+    tmp += KILOHERTZ;
   }
-  return temp;
+  return tmp;
 }
 
-const char * ShowFreqStepAndLicence()
+String ShowFreqStepAndLicence()
 {
-  strcpy(temp, ShowFreqStep());
-  for(int indx = strlen(temp); indx < 9; indx++) {
-      strcat(temp, " ");
+  String tmp;  
+  tmp =  ShowFreqStep();
+  for(int indx = tmp.length(); indx < 9; indx++) {
+      tmp += " ";
   }
-  strcat(temp, ShowLicenseType());
-  return temp;
+  tmp += ShowLicenseType();
+  return tmp;
 }
 
 
-const char * ShowClockDisplay(){
-  strcpy(temp, "This is the time");
-  return temp;
+String ShowClockDisplay(){
+  String tmp;   
+  tmp = "This is the time";
+  return tmp;
 }
 
-void printDigits(int digits){
-  // utility function for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
-  if(digits < 10)
-    Serial.print('0');
-  Serial.print(digits);
+/*****
+  This method displays the supply voltage
+
+  Argument list:
+    void
+
+  Return value:
+    void
+*****/
+String  ShowSupplyVoltage(){
+  String part;
+  String tmp;   
+
+  part = GetSupplyVoltage();
+  tmp =  "Voltage: ";
+  tmp += part;
+  return tmp;
 }
 
 

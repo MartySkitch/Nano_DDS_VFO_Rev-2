@@ -77,8 +77,7 @@ volatile int_fast32_t currentFrequency;     // Starting frequency of VFO
 volatile long currentFrequencyIncrement;
 volatile long ritOffset;
 
-// ============================ General Global Variables ============================
-char temp[17];         
+// ============================ General Global Variables ============================    
 int incrementIndex = 0;           // variable to index into increment arrays (see below)
 int_fast32_t oldFrequency = 1;    // variable to hold the updated frequency
 
@@ -92,14 +91,15 @@ static  long memory[]           = {VFOLOWERFREQUENCYLIMIT, VFOUPPERFREQUENCYLIMI
 int displayMode = 0;
 
 // -- FUNCTION PROTOTYPES for second line of display--
-const char * ShowFreqStepAndLicence();
-const char * ShowClockDisplay();
-const char * func3();
-const char * func4();
-const char * func5();
+String ShowFreqStepAndLicence();
+String ShowSupplyVoltage();
+String ShowClockDisplay();
+String func3();
+String func4();
+String func5();
 // -- ENDS --
 // notice the prototype
-const char * (*ptr[5])();   
+String (*ptr[5])();   
 
 Rotary r = Rotary(2, 3);       // Create encoder object and set the pins the rotary encoder uses.  Must be interrupt pins.
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Create LCD object and set the LCD I2C address
@@ -109,7 +109,8 @@ void setup() {
    // ===================== arrays are made to point ======================================
    // at the respective functions
    ptr[0]=ShowFreqStepAndLicence;
-   ptr[1]=ShowClockDisplay;
+   ptr[1]=ShowSupplyVoltage;
+   ptr[2]=ShowClockDisplay;
   
   // ===================== Set up from EEPROM memory ======================================
   currentFrequency = readEEPROMRecord(READEEPROMFREQ);            // Last frequency read while tuning
@@ -171,6 +172,10 @@ void loop() {
   }
 
   if (currentFrequency != oldFrequency) { // Are we still looking at the same frequency?
+    
+    DisplayLCDLine(ShowFrequency(), 0, 2, 1);                    // Nope, so update display.
+    DisplayLCDLine( (*ptr[displayMode])(), 1, 0, 1);  // This is for the second line
+    
     flag = DoRangeCheck();
     if (flag == FREQOUTOFBAND) {          // Tell user if out of band; should not happen
       lcd.setCursor(0, 0);
@@ -178,9 +183,6 @@ void loop() {
     }
     sendFrequency(currentFrequency);      // Send frequency to chip
     oldFrequency = currentFrequency;
-    
-    DisplayLCDLine(ShowFrequency(), 0, 2, 1);                    // Nope, so update display.
-    DisplayLCDLine( (*ptr[displayMode])(), 1, 0, 1);  // This is for the second line
   }
     
   eepromCurrentTime = millis();
@@ -191,11 +193,6 @@ void loop() {
     eepromStartTime = millis();
     markFrequency = currentFrequency;                                     // Update EEPROM freq.
   }
-
-  if (eepromCurrentTime - eepromStartTime > 10000)
-    displayMode = 1;
-   else
-    displayMode =0;  
 }
 
 

@@ -1,5 +1,3 @@
-
-
 void sendFrequency(int32_t frequency) {
   /*
   Formula: int32_t adjustedFreq = frequency * 4294967295/125000000;

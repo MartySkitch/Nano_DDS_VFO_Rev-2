@@ -12,7 +12,7 @@ ISR(PCINT2_vect) {
       break;
 
     case DIR_CCW:                                    // Turning Counter-Clockwise, going to lower frequencies
-        currentFrequency -= currentFrequencyIncrement;
+        currentFrequency -= currentFrequencyIncrement;    
       break;
 
     default:                                          // Should never be here
