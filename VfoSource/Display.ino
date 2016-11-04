@@ -10,7 +10,7 @@
 *****/
 void DisplayLCDLine(String message, int row, int col, int clearLine)
 {
-  if(clearLine) {
+  if (clearLine) {
     lcd.setCursor(0, row);
     lcd.print(SPACES);
   }
@@ -30,11 +30,19 @@ void DisplayLCDLine(String message, int row, int col, int clearLine)
 *****/
 String ShowFrequency() {
   String part;
-  String tmp; 
-  part = currentFrequency;
-  tmp = "7." + part.substring(1,4) 
-        + "." + part.substring(4)
-        + " "  MEGAHERTZ;
+  String tmp;
+  int flag;
+
+  flag = DoRangeCheck();
+  if (flag == FREQ_OUT_OF_BAND) {          // Tell user if out of band; should not happen
+    tmp = "* Out of Band *";
+  }
+  else {
+    part = currentFrequency;
+    tmp = "7." + part.substring(1, 4)
+          + "." + part.substring(4)
+          + " "  MEGAHERTZ;
+  }
   return tmp;
 }
 
@@ -49,7 +57,6 @@ String ShowFrequency() {
 *****/
 String ShowLicenseType()
 {
-  
   return bandWarnings[whichLicense];
 }
 
@@ -66,7 +73,7 @@ String ShowLicenseType()
 *****/
 String ShowFreqStep()
 {
-  String tmp; 
+  String tmp;
   tmp +=  incrementStrings[incrementIndex];
 
   if (incrementIndex < 4) {
@@ -79,18 +86,18 @@ String ShowFreqStep()
 
 String ShowFreqStepAndLicence()
 {
-  String tmp;  
+  String tmp;
   tmp =  ShowFreqStep();
-  for(int indx = tmp.length(); indx < 9; indx++) {
-      tmp += " ";
+  for (int indx = tmp.length(); indx < 9; indx++) {
+    tmp += " ";
   }
   tmp += ShowLicenseType();
   return tmp;
 }
 
 
-String ShowClockDisplay(){
-  String tmp;   
+String ShowClockDisplay() {
+  String tmp;
   tmp = "This is the time";
   return tmp;
 }
@@ -104,14 +111,13 @@ String ShowClockDisplay(){
   Return value:
     void
 *****/
-String  ShowSupplyVoltage(){
-  String part;
-  String tmp;   
+String  ShowSupplyVoltage() {
+  float volt = GetSupplyVoltage();
+  
+  String buf = String(volt, 3);
+  buf = "Volt: " + buf;
 
-  part = GetSupplyVoltage();
-  tmp =  "Voltage: ";
-  tmp += part;
-  return tmp;
+  return buf;
 }
 
 
@@ -126,10 +132,10 @@ String  ShowSupplyVoltage(){
 *****/
 void Splash()
 {
-  lcd.setCursor(0, 0);
+  lcd.setCursor(4, 0);
   lcd.print("Forty-9er DDS ");
-  lcd.setCursor(3, 1);
+  lcd.setCursor(5, 1);
   lcd.print("NR3Z");
-  delay(SPLASHDELAY);
+  delay(SPLASH_DELAY);
 }
 

@@ -32,9 +32,9 @@ unsigned long readEEPROMRecord(int record)
 
 /*****
   This method is used to test and perhaps write the latest frequency to EEPROM. This routine is called
-  every DELTATIMEOFFSET (default = 10 seconds). The method tests to see if the current frequency is the
-  same as the last frequency (markFrequency). If they are the same, +/- DELTAFREQOFFSET (drift?), no
-  write to EEPROM takes place. If the change was larger than DELTAFREQOFFSET, the new frequency is
+  every DELTA_TIME_OFFSET (default = 10 seconds). The method tests to see if the current frequency is the
+  same as the last frequency (markFrequency). If they are the same, +/- DELTA_FREQ_OFFSET (drift?), no
+  write to EEPROM takes place. If the change was larger than DELTA_FREQ_OFFSET, the new frequency is
   written to EEPROM. This is done because EEPROM can only be written/erased 100K times before it gets
   flaky.
 
@@ -53,7 +53,7 @@ void writeEEPROMRecord(unsigned long freq, int record)
     unsigned long val;
   } myUnion;
 
-  if (abs(markFrequency - freq) < DELTAFREQOFFSET) {  // Is the new frequency more or less the same as the one last written?
+  if (abs(markFrequency - freq) < DELTA_FREQ_OFFSET) {  // Is the new frequency more or less the same as the one last written?
     return;                                           // the same as the one last written? If so, go home.
   }
   myUnion.val = freq;
@@ -64,5 +64,25 @@ void writeEEPROMRecord(unsigned long freq, int record)
   EEPROM.write(offset + 2, myUnion.array[2]);
   EEPROM.write(offset + 3, myUnion.array[3]);
   markFrequency = freq;                               // Save the value just written
+}
+
+void UpdateEEProm() {
+  static long eepromStartTime;                 // Set when powered up and while tuning
+  static long eepromCurrentTime;               // The current time reading
+  static int firstTime = 1;
+
+  if(firstTime){
+      eepromStartTime = millis();                                     // Need to keep track of EEPROM update time
+      return;
+  }
+
+  eepromCurrentTime = millis();
+  // Only update EEPROM if necessary...both time and currently stored freq.
+  if (eepromCurrentTime - eepromStartTime > DELTA_TIME_OFFSET && markFrequency != currentFrequency) {
+    writeEEPROMRecord(currentFrequency, READ_EEPROM_FREQ);                  // Update freq
+    writeEEPROMRecord((unsigned long) incrementIndex, READ_EEPROM_INCRE);   // Update increment
+    eepromStartTime = millis();
+    markFrequency = currentFrequency;                                     // Update EEPROM freq.
+  }
 }
 

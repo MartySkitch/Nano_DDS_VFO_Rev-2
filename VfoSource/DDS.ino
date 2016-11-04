@@ -6,7 +6,7 @@ void sendFrequency(int32_t frequency) {
   variations here by adjusting the clock frequency. The constants
   factor to 34.359
   */
-  int32_t freq = (int32_t) (((float) frequency * MYTUNINGCONSTANT));  // Redefine your constant if needed
+  int32_t freq = (int32_t) (((float) frequency * MY_TUNING_CONSTANT));  // Redefine your constant if needed
 
   for (int b = 0; b < 4; b++, freq >>= 8) {
     tfr_byte(freq & 0xFF);

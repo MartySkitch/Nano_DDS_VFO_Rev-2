@@ -18,10 +18,10 @@ ISR(PCINT2_vect) {
     default:                                          // Should never be here
       break;
   }
-  if (currentFrequency >= VFOUPPERFREQUENCYLIMIT) {   // Upper band edge?
+  if (currentFrequency >= VFO_UPPER_FREQUENCY_LIMIT) {   // Upper band edge?
     currentFrequency = oldFrequency;
   }
-  if (currentFrequency <= VFOLOWERFREQUENCYLIMIT) {   // Lower band edge?
+  if (currentFrequency <= VFO_LOWER_FREQUENCY_LIMIT) {   // Lower band edge?
     currentFrequency = oldFrequency;
   }
 }
@@ -34,25 +34,13 @@ ISR(PCINT2_vect) {
     void
 
   Return value:
-    int            0 (FREQINBAND) if within a ham band, 1 (FREQOUTOFBAND) if not
+    int            0 (FREQ_IN_BAND) if within a ham band, 1 (FREQ_OUT_OF_BAND) if not
 *****/
 int DoRangeCheck()
 {
 
-  if (currentFrequency <= VFOLOWERFREQUENCYLIMIT || currentFrequency >= VFOUPPERFREQUENCYLIMIT) {
-    return FREQOUTOFBAND;
+  if (currentFrequency <= VFO_LOWER_FREQUENCY_LIMIT || currentFrequency >= VFO_UPPER_FREQUENCY_LIMIT) {
+    return FREQ_OUT_OF_BAND;
   }
-  //Setup some VFO band edges
-  if (currentFrequency <= VFOLOWALLBUTEXTRA) {
-    whichLicense = EXTRA;
-  }
-  if (currentFrequency > VFOLOWTECH && currentFrequency < VFOHIGHTECH) {
-    whichLicense = TECH;
-  }
-
-  if ((currentFrequency >= VFOLOWALLBUTEXTRA && currentFrequency < VFOHIGHTECH) ||
-      (currentFrequency > VFOGENERALLOWGAP && currentFrequency < VFOUPPERFREQUENCYLIMIT) ) {
-    whichLicense = GENERAL;
-  }
-  return FREQINBAND;
+  return FREQ_IN_BAND;
 }
