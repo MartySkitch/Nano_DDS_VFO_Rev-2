@@ -64,7 +64,7 @@
 #define READ_EEPROM_INCRE       1       // The EEPROM record address of last frequency increment
 
 #define DELTA_FREQ_OFFSET      25       // Must move frequency more than this to call it a frequency change
-#define DELTA_TIME_OFFSET   60000       // If not change in frequency within 1 minute, update the frequency
+#define DELTA_TIME_OFFSET      60000       // If not change in frequency within 1 minute, update the frequency
 
 // ==================================== Display ==============================
 #define DISPLAY_SWITCH_PIN    5

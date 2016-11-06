@@ -68,11 +68,12 @@ void writeEEPROMRecord(unsigned long freq, int record)
 
 void UpdateEEProm() {
   static long eepromStartTime;                 // Set when powered up and while tuning
-  static long eepromCurrentTime;               // The current time reading
-  static int firstTime = 1;
+  long eepromCurrentTime;               // The current time reading
+  static int resetTime = 1;
 
-  if(firstTime){
+  if(resetTime){
       eepromStartTime = millis();                                     // Need to keep track of EEPROM update time
+      resetTime = 0;
       return;
   }
 
@@ -83,6 +84,7 @@ void UpdateEEProm() {
     writeEEPROMRecord((unsigned long) incrementIndex, READ_EEPROM_INCRE);   // Update increment
     eepromStartTime = millis();
     markFrequency = currentFrequency;                                     // Update EEPROM freq.
+    resetTime = 1;
   }
 }
 
