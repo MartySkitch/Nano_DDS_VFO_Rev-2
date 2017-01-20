@@ -124,3 +124,24 @@ int CheckVoltage() {
   return ret;
 }
 
+/*****
+  This method will check if the uptime has increased by Set Amount
+
+  Return value:
+    int         1 indicates that the uptime has increased 
+
+*****/
+int CheckUpTime() {
+  long currentmillis;
+  static long oldmillis;
+  int ret = 0;
+
+  currentmillis = millis();
+
+  if ( (currentmillis - oldmillis) > 1000) {
+    oldmillis = millis();
+    ret = 1;
+  }
+  return ret;
+}
+

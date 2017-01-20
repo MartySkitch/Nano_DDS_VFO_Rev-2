@@ -20,7 +20,13 @@
 // in the Arduino library folder
 #include <LiquidCrystal_I2C.h>
 
-#define MY_TUNING_CONSTANT     34.35910479585483    // Replace with your calculated TUNING CONSTANT. See article
+//#define MY_TUNING_CONSTANT   34.35910479585483    // Replace with your calculated TUNING CONSTANT. See article
+//#define MY_TUNING_CONSTANT   34.34861742303530    // My calculated constant
+#define MY_TUNING_CONSTANT     34.35778887929830   // My calculated constant using Freq Counter
+
+
+
+
 
 #define SPACES      "                "
 #define HERTZ       "Hz"
@@ -54,10 +60,15 @@
 #define SPLASH_DELAY    4000               // Hold splash screen for 4 seconds
 
 #define ROTARY_SWITCH_PIN   7               // Used by switch for rotary encoder
-#define RXTX_PIN          12               // When HIGH, the xcvr is in TX mode
+#define RXTX_PIN          12               // When HIGH, the xcvr is in TX mode -- This does not appear to be used
 
 #define FREQ_IN_BAND        0               // Used with range checking
 #define FREQ_OUT_OF_BAND     1
+
+// W2ROW receive offset
+#define KEY_IN_PIN        4               // W2ROW Key in pin  TO DO: Need to change this Maybe D4
+#define KEY_OUT_PIN       13              // W2ROW Key out pin
+#define RX_OFFSET         -600            // W2ROW RX offset in Hz
 
 // ===================================== EEPROM Offsets and data ==============================================
 #define READ_EEPROM_FREQ        0       // The EEPROM record address of the last written frequency
@@ -70,7 +81,7 @@
 #define DISPLAY_SWITCH_PIN    5
 #define LINE_ONE    0
 #define LINE_TWO    1
-#define NUMBER_OF_DISPLAYS    3
+#define NUMBER_OF_DISPLAYS    4
 #define VOLTAGE_DELTA     0.1
 
 // ==================================== EEPROM data ==============================================
@@ -97,8 +108,8 @@ int displayMode = 1;
 // -- FUNCTION PROTOTYPES for second line of display--
 String ShowFreqStepAndLicence();
 String ShowSupplyVoltage();
+String ShowUpTime();
 String ShowClockDisplay();
-String func3();
 String func4();
 String func5();
 // -- ENDS --
@@ -108,13 +119,15 @@ String (*Line2Display[5])();
 Rotary r = Rotary(2, 3);       // Create encoder object and set the pins the rotary encoder uses.  Must be interrupt pins.
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Create LCD object and set the LCD I2C address
 
+int t_r_state;                 // W2ROW T/R state 0=receive  1=transmit
 
 void setup() {
   // ===================== arrays are made to point ======================================
   // at the respective functions
   Line2Display[0] = ShowFreqStepAndLicence;
   Line2Display[1] = ShowSupplyVoltage;
-  Line2Display[2] = ShowClockDisplay;
+  Line2Display[2] = ShowUpTime;
+  Line2Display[3] = ShowClockDisplay;
 
   // ===================== Set up from EEPROM memory ======================================
   currentFrequency = readEEPROMRecord(READ_EEPROM_FREQ);            // Last frequency read while tuning
@@ -129,6 +142,10 @@ void setup() {
   currentFrequencyIncrement = incrementTable[incrementIndex];     // Store working freq variables
   markFrequency = currentFrequency;
 
+  pinMode(KEY_IN_PIN, INPUT_PULLUP);    // W2ROW low = key closed
+  pinMode(KEY_OUT_PIN, OUTPUT);         // W2ROW high = key transceiver
+  digitalWrite(KEY_OUT_PIN, LOW);       // W2ROW Start in receive
+  t_r_state = 0;                        // W2ROW Indicate receive
 
   pinMode(ROTARY_SWITCH_PIN, INPUT);
   pinMode(RXTX_PIN, LOW);              // Start in RX mode
@@ -152,15 +169,42 @@ void setup() {
   DisplayLCDLine(ShowFreqStepAndLicence(), 1, 0, 1);
   DoRangeCheck();
   sendFrequency(currentFrequency);
+
+  Serial.begin(9600); 
 }
 
 void loop() {
+
+    // W2ROW Begin code to do T/R switching with RX offset
+
+   if (digitalRead(KEY_IN_PIN))    // W2ROW Receive
+   {
+    if (t_r_state > 0)             // W2ROW changed from X to R
+    {
+     t_r_state = 0;                // W2ROW Indicate receive
+     sendFrequency(currentFrequency + RX_OFFSET);  //  W2ROW Receive frequency with offset added
+     digitalWrite(KEY_OUT_PIN, LOW); // W2ROW Enter receive mode
+    } 
+   }
+  else                            // W2ROW Transmit
+   {
+    if (t_r_state == 0)           // W2ROW changed from R to X
+    {
+     t_r_state = 1;               // W2ROW indicate transmit
+     sendFrequency(currentFrequency);  // W2ROW Transmit frequency (the one displayed)
+     digitalWrite(KEY_OUT_PIN, HIGH);  // W2ROW Enter transmit mode
+     Serial.println("In Transmit mode");
+    }
+   }
+
+  // W2ROW end of code to do T/R switching with RX offset
 
   int updateLineOne = 0;
   int updateLineTwo = 0;
 
   updateLineOne = CheckDeltaFrequency();
-  updateLineTwo = CheckDisplaySwitch() + CheckStepSwitch() + CheckLicence() + CheckVoltage();
+  updateLineTwo = CheckDisplaySwitch() + CheckStepSwitch() + CheckLicence() + CheckVoltage()
+                  + CheckUpTime();
 
   UpdateEEProm();
 

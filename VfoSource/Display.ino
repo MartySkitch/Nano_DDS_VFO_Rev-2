@@ -84,6 +84,10 @@ String ShowFreqStep()
   return tmp;
 }
 
+/*****
+  This method displays the Frequency and Licence
+
+*****/
 String ShowFreqStepAndLicence()
 {
   String tmp;
@@ -95,7 +99,10 @@ String ShowFreqStepAndLicence()
   return tmp;
 }
 
+/*****
+  This method displays the time
 
+*****/
 String ShowClockDisplay() {
   String tmp;
   tmp = "This is the time";
@@ -104,35 +111,54 @@ String ShowClockDisplay() {
 
 /*****
   This method displays the supply voltage
-
-  Argument list:
-    void
-
-  Return value:
-    void
 *****/
 String  ShowSupplyVoltage() {
   float volt = GetSupplyVoltage();
-  
+
   String buf = String(volt, 3);
   buf = "Volt: " + buf;
 
   return buf;
 }
 
+/*****
+  This method displays the uptime
+*****/
+//############################################ UPTIME vvvvv  #################################
+String ShowUpTime()
+{
+  long days = 0;
+  long hours = 0;
+  long mins = 0;
+  long secs = 0;
+  String temp;
+
+  secs =  millis() / 1000; //convect milliseconds to seconds
+  mins = secs / 60; //convert seconds to minutes
+  hours = mins / 60; //convert minutes to hours
+  days = hours / 24; //convert hours to days
+  secs = secs - (mins * 60); //subtract the coverted seconds to minutes in order to display 59 secs max
+  mins = mins - (hours * 60); //subtract the coverted minutes to hours in order to display 59 minutes max
+  hours = hours - (days * 24); //subtract the coverted hours to days in order to display 23 hours max
+
+  String secStr = String(secs, DEC);
+  String minStr = String(mins, DEC);
+  String hourStr = String(hours, DEC);
+  
+  //Display results
+
+  temp = "Uptime: " + hourStr + ":" + minStr + ":" + secStr;
+
+  return temp;
+}
 
 /*****
   This method simply displays a sign-on message
 
-  Argument list:
-    void
-
-  Return value:
-    void
 *****/
 void Splash()
 {
-  lcd.setCursor(4, 0);
+  lcd.setCursor(2, 0);
   lcd.print("Forty-9er DDS ");
   lcd.setCursor(5, 1);
   lcd.print("NR3Z");
